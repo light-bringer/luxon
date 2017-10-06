@@ -1,3 +1,4 @@
+// @flow
 import { Util } from './util';
 import { Formatter } from './formatter';
 import { FixedOffsetZone } from '../zones/fixedOffsetZone';

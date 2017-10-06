@@ -2,6 +2,7 @@ const prettierOptions = require('./.prettier.js');
 const maxWidth = prettierOptions.printWidth;
 
 module.exports = {
+  parser: 'babel-eslint',
   extends: ['airbnb-base', 'prettier'],
   plugins: ['import', 'prettier'],
   rules: {

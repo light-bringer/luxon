@@ -1,3 +1,4 @@
+// @flow
 import { LocalZone } from './zones/localZone';
 import { Util } from './impl/util';
 

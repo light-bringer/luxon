@@ -1,3 +1,4 @@
+// @flow
 import { Util } from './util';
 import { English } from './english';
 import { FixedOffsetZone } from '../zones/fixedOffsetZone';

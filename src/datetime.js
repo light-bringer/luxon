@@ -1,3 +1,4 @@
+// @flow
 import { Duration } from './duration';
 import { Interval } from './interval';
 import { Settings } from './settings';

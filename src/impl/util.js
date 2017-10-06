@@ -1,3 +1,4 @@
+// @flow
 import { Duration } from '../duration';
 import { DateTime } from '../datetime';
 import { Zone } from '../zone';

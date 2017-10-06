@@ -1,3 +1,4 @@
+// @flow
 import { Util } from './util';
 import { DateTime } from '../datetime';
 

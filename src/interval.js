@@ -1,3 +1,4 @@
+// @flow
 import { Util } from './impl/util';
 import { DateTime } from './datetime';
 import { Duration } from './duration';
@@ -371,7 +372,8 @@ export class Interval {
       } else {
         return [sofar.concat([current]), item];
       }
-    }, [[], null]);
+    },
+    [[], null]);
     if (final) {
       found.push(final);
     }

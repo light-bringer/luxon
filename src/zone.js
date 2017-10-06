@@ -1,3 +1,4 @@
+// @flow
 /* eslint no-unused-vars: "off" */
 import { ZoneIsAbstract } from './errors';
 

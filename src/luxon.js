@@ -1,3 +1,4 @@
+// @flow
 export { DateTime } from './datetime';
 export { Duration } from './duration';
 export { Interval } from './interval';

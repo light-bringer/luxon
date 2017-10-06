@@ -3,6 +3,7 @@ const babel = require('rollup-plugin-babel'),
   buffer = require('vinyl-buffer'),
   esdoc = require('gulp-esdoc'),
   eslint = require('gulp-eslint'),
+  { execSync } = require('child_process');
   filter = require('gulp-filter'),
   gulp = require('gulp'),
   jest = require('gulp-jest').default,
@@ -11,6 +12,7 @@ const babel = require('rollup-plugin-babel'),
   prettier = require('prettier'),
   rename = require('gulp-rename'),
   rollup = require('rollup-stream'),
+  rollupFlow = require('rollup-plugin-flow'),
   runSequence = require('run-sequence'),
   source = require('vinyl-source-stream'),
   sourcemaps = require('gulp-sourcemaps'),
@@ -22,7 +24,7 @@ function process(inopts) {
       input: inopts.input,
       sourcemap: true,
       format: inopts.format,
-      plugins: []
+      plugins: [rollupFlow()]
     },
     inopts.rollupOpts || {}
   );
@@ -31,7 +33,7 @@ function process(inopts) {
     opts.plugins.push(
       babel({
         babelrc: false,
-        presets: [['es2015', { modules: false }]],
+        presets: ['flow'],
         plugins: ['external-helpers']
       })
     );
@@ -165,7 +167,20 @@ gulp.task('docs', () =>
 
 gulp.task('site', () => gulp.src('./site/**').pipe(gulp.dest('./build')));
 
+gulp.task('types', () => {
+  try {
+    execSync('./node_modules/.bin/flow', { stdio: 'inherit' });
+  } catch (e) {
+    if (!e.message.match(new RegExp('Command failed','i'))) {
+      console.log(e);
+    }
+    gulp.stop();
+  }
+});
+
 // build first so the test deps work
 gulp.task('simple', cb => runSequence('build', 'lint', 'test', cb));
-gulp.task('default', cb => runSequence('format', 'build', 'lint', 'test', 'docs', 'site', cb));
-gulp.task('prerelease', cb => runSequence('format', 'build', 'lint', 'docs', 'site', cb));
+gulp.task('default', cb =>
+  runSequence('format', 'build', 'lint', 'types', 'test', 'docs', 'site', cb)
+);
+gulp.task('prerelease', cb => runSequence('format', 'build', 'lint', 'types', 'docs', 'site', cb));

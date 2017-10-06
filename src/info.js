@@ -1,5 +1,7 @@
+// @flow
 import { DateTime } from './datetime';
 import { Settings } from './settings';
+import { Zone } from './zone';
 import { Locale } from './impl/locale';
 import { Util } from './impl/util';
 
@@ -12,7 +14,7 @@ export class Info {
    * @param {string|Zone} [zone='local'] - Zone to check. Defaults to the environment's local zone.
    * @return {boolean}
    */
-  static hasDST(zone = Settings.defaultZone) {
+  static hasDST(zone: Zone = Settings.defaultZone): boolean {
     return (
       !zone.universal &&
       DateTime.local()
@@ -43,7 +45,7 @@ export class Info {
   static months(
     length = 'long',
     { locale = 'en', numberingSystem = null, outputCalendar = 'gregory' } = {}
-  ) {
+  ): Array<string> {
     return new Locale(locale, numberingSystem, outputCalendar).months(length);
   }
 
@@ -60,9 +62,9 @@ export class Info {
    * @return {[string]}
    */
   static monthsFormat(
-    length = 'long',
-    { locale = 'en', numberingSystem = null, outputCalendar = 'gregory' } = {}
-  ) {
+    length: string = 'long',
+    { locale = 'en', numberingSystem = null, outputCalendar = 'gregory' }: Object = {}
+  ): Array<string> {
     return new Locale(locale, numberingSystem, outputCalendar).months(length, true);
   }
 
@@ -80,7 +82,10 @@ export class Info {
    * @example Info.weekdays('short', 'ar')[0] //=> 'الاثنين'
    * @return {[string]}
    */
-  static weekdays(length = 'long', { locale = 'en', numberingSystem = null } = {}) {
+  static weekdays(
+    length: string = 'long',
+    { locale = 'en', numberingSystem = null }: Object = {}
+  ): Array<string> {
     return new Locale(locale, numberingSystem, null).weekdays(length);
   }
 
