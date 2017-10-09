@@ -2,6 +2,7 @@
 import { Duration } from './duration';
 import { Interval } from './interval';
 import { Settings } from './settings';
+import { Zone } from './zone';
 import { Formatter } from './impl/formatter';
 import { FixedOffsetZone } from './zones/fixedOffsetZone';
 import { LocalZone } from './zones/localZone';
@@ -20,7 +21,7 @@ import {
 const INVALID = 'Invalid DateTime',
   UNSUPPORTED_ZONE = 'unsupported zone';
 
-function possiblyCachedWeekData(dt) {
+function possiblyCachedWeekData(dt: DateTime) {
   if (dt.weekData === null) {
     dt.weekData = Conversions.gregorianToWeek(dt.c);
   }
@@ -80,7 +81,7 @@ function tsToObj(ts, offset) {
   };
 }
 
-function objToLocalTS(obj) {
+function objToLocalTS(obj: Object) {
   let d = Date.UTC(
     obj.year,
     obj.month - 1,
@@ -129,7 +130,7 @@ function adjustTime(inst, dur) {
   return { ts, o };
 }
 
-function parseDataToDateTime(parsed, parsedZone, opts = {}) {
+function parseDataToDateTime(parsed: Object, parsedZone: Zone, opts: Object = {}) {
   const { setZone, zone } = opts;
   if (parsed && Object.keys(parsed).length !== 0) {
     const interpretationZone = parsedZone || zone,
@@ -150,29 +151,29 @@ function formatMaybe(dt, format) {
     : null;
 }
 
-const defaultUnitValues = {
-    month: 1,
-    day: 1,
-    hour: 0,
-    minute: 0,
-    second: 0,
-    millisecond: 0
-  },
-  defaultWeekUnitValues = {
-    weekNumber: 1,
-    weekday: 1,
-    hour: 0,
-    minute: 0,
-    second: 0,
-    millisecond: 0
-  },
-  defaultOrdinalUnitValues = {
-    ordinal: 1,
-    hour: 0,
-    minute: 0,
-    second: 0,
-    millisecond: 0
-  };
+const defaultUnitValues = new Map([
+    ['month', 1],
+    ['day', 1],
+    ['hour', 0],
+    ['minute', 0],
+    ['second', 0],
+    ['millisecond', 0]
+]),
+  defaultWeekUnitValues = new Map([
+    ['weekNumber', 1],
+    ['weekday', 1],
+    ['hour', 0],
+    ['minute', 0],
+    ['second', 0],
+    ['millisecond', 0]
+  ]),
+  defaultOrdinalUnitValues = new Map([
+    ['ordinal', 1],
+    ['hour', 0],
+    ['minute', 0],
+    ['second', 0],
+    ['millisecond', 0]
+  ]);
 
 function isoTimeFormat(dateTime, suppressSecs, suppressMillis) {
   return suppressSecs && dateTime.second === 0 && dateTime.millisecond === 0
@@ -194,31 +195,34 @@ const orderedWeekUnits = [
 
 const orderedOrdinalUnits = ['year', 'ordinal', 'hour', 'minute', 'second', 'millisecond'];
 
-function normalizeUnit(unit, ignoreUnknown = false) {
-  const normalized = {
-    year: 'year',
-    years: 'year',
-    month: 'month',
-    months: 'month',
-    day: 'day',
-    days: 'day',
-    hour: 'hour',
-    hours: 'hour',
-    minute: 'minute',
-    minutes: 'minute',
-    second: 'second',
-    seconds: 'second',
-    millisecond: 'millisecond',
-    milliseconds: 'millisecond',
-    weekday: 'weekday',
-    weekdays: 'weekday',
-    weeknumber: 'weekNumber',
-    weeksnumber: 'weekNumber',
-    weeknumbers: 'weekNumber',
-    weekyear: 'weekYear',
-    weekyears: 'weekYear',
-    ordinal: 'ordinal'
-  }[unit ? unit.toLowerCase() : unit];
+const unitNormalization = new Map([
+  ['year',  'year'],
+  ['years',  'year'],
+  ['month',  'month'],
+  ['months',  'month'],
+  ['day',  'day'],
+  ['days',  'day'],
+  ['hour',  'hour'],
+  ['hours',  'hour'],
+  ['minute',  'minute'],
+  ['minutes',  'minute'],
+  ['second',  'second'],
+  ['seconds',  'second'],
+  ['millisecond',  'millisecond'],
+  ['milliseconds',  'millisecond'],
+  ['weekday',  'weekday'],
+  ['weekdays',  'weekday'],
+  ['weeknumber',  'weekNumber'],
+  ['weeksnumber',  'weekNumber'],
+  ['weeknumbers',  'weekNumber'],
+  ['weekyear',  'weekYear'],
+  ['weekyears',  'weekYear'],
+  ['ordinal',  'ordinal']
+]);
+
+function normalizeUnit(unit: string, ignoreUnknown: boolean = false) {
+
+  const normalized = unitNormalization.get(unit ? unit.toLowerCase() : unit);
 
   if (!ignoreUnknown && !normalized) throw new InvalidUnitError(unit);
 
@@ -246,12 +250,22 @@ function normalizeUnit(unit, ignoreUnknown = false) {
  * There's plenty others documented below. In addition, for more information on subtler topics like internationalization, time zones, alternative calendars, validity, and so on, see the external documentation.
  */
 export class DateTime {
+
+  ts: number;
+  zone: Zone;
+  loc: Locale;
+  invalidReason: ?String;
+  weekData: ?Object;
+  c: Object;
+  o: number;
+
+
   /**
    * @access private
    */
-  constructor(config = {}) {
+  constructor(config: Object = {}) {
     const zone = config.zone || Settings.defaultZone,
-      invalidReason = config.invalidReason || (zone.isValid ? null : UNSUPPORTED_ZONE);
+      invalidReason : ?string = config.invalidReason || (zone.isValid ? null : UNSUPPORTED_ZONE);
 
     Object.defineProperty(this, 'ts', {
       value: config.ts || Settings.now(),
@@ -485,7 +499,7 @@ export class DateTime {
       if (!Util.isUndefined(v)) {
         foundFirst = true;
       } else if (foundFirst) {
-        normalized[u] = defaultValues[u];
+        normalized[u] = defaultValues.get(u);
       } else {
         normalized[u] = objNow[u];
       }
