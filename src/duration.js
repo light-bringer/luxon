@@ -7,6 +7,7 @@ import { InvalidArgumentError, InvalidDurationError, InvalidUnitError } from './
 
 const INVALID = 'Invalid Duration';
 
+// unit conversion constants
 const lowOrderMatrix = {
     weeks: {
       days: 7,
@@ -72,6 +73,7 @@ const lowOrderMatrix = {
     lowOrderMatrix
   );
 
+// units ordered by size
 const orderedUnits = [
   'years',
   'months',
@@ -83,16 +85,19 @@ const orderedUnits = [
   'milliseconds'
 ];
 
+// clone really means "create another instance just like this one, but with these changes"
 function clone(dur, alts, clear = false) {
   // deep merge for vals
   const conf = {
-    values: clear ? alts.values : Object.assign(dur.values, alts.values || {}),
+    values: clear ? alts.values : Object.assign({}, dur.values, alts.values || {}),
     loc: dur.loc.clone(alts.loc),
     conversionAccuracy: alts.conversionAccuracy || dur.conversionAccuracy
   };
   return new Duration(conf);
 }
 
+// some functions really care about the absolute value of a duration, so combined with
+// normalize() this tells us whether this duration is positive or negative
 function isHighOrderNegative(obj) {
   // only rule is that the highest-order part must be non-negative
   for (const k of orderedUnits) {
@@ -106,7 +111,7 @@ function isHighOrderNegative(obj) {
  *
  * Here is a brief overview of commonly used methods and getters in Duration:
  *
- * * **Creation** To create a Duration, use {@link fromMillis}, {@link fromObject}, or {@link fromISO}.
+ * * **Creation** To create a Duration, use {@link Duration.fromMillis}, {@link Duration.fromObject}, or {@link Duration.fromISO}.
  * * **Unit values** See the {@link years}, {@link months}, {@link weeks}, {@link days}, {@link hours}, {@link minutes}, {@link seconds}, {@link milliseconds} accessors.
  * * **Configuration** See  {@link locale} and {@link numberingSystem} accessors.
  * * **Transformation** To create new Durations out of old ones use {@link plus}, {@link minus}, {@link normalize}, {@link set}, {@link reconfigure}, {@link shiftTo}, and {@link negate}.
@@ -156,7 +161,7 @@ export class Duration {
   }
 
   /**
-   * Create an DateTime from a Javascript object with keys like 'years' and 'hours'.
+   * Create an Duration from a Javascript object with keys like 'years' and 'hours'.
    * @param {Object} obj - the object to create the DateTime from
    * @param {number} obj.years
    * @param {number} obj.months
@@ -180,7 +185,7 @@ export class Duration {
   }
 
   /**
-   * Create a DateTime from an ISO 8601 duration string.
+   * Create a Duration from an ISO 8601 duration string.
    * @param {string} text - text to parse
    * @param {Object} opts - options for parsing
    * @param {string} [obj.locale='en-US'] - the locale to use
@@ -204,7 +209,7 @@ export class Duration {
    */
   static invalid(reason) {
     if (!reason) {
-      throw new InvalidArgumentError('need to specify a reason the DateTime is invalid');
+      throw new InvalidArgumentError('need to specify a reason the Duration is invalid');
     }
     if (Settings.throwOnInvalid) {
       throw new InvalidDurationError(reason);
@@ -342,7 +347,7 @@ export class Duration {
    */
   inspect() {
     if (this.isValid) {
-      return `Duration {\n  values: ${this.toObject().inspect()},\n  locale: ${this
+      return `Duration {\n  values: ${this.toISO()},\n  locale: ${this
         .locale},\n  conversionAccuracy: ${this.conversionAccuracy} }`;
     } else {
       return `Duration { Invalid, reason: ${this.invalidReason} }`;
@@ -470,21 +475,26 @@ export class Duration {
 
     for (const k of orderedUnits) {
       if (units.indexOf(k) >= 0) {
-        built[k] = 0;
         lastUnit = k;
+
+        let own = 0;
 
         // anything we haven't boiled down yet should get boiled to this unit
         for (const ak in accumulated) {
           if (accumulated.hasOwnProperty(ak)) {
-            built[k] += this.matrix[ak][k] * accumulated[ak];
+            own += this.matrix[ak][k] * accumulated[ak];
+            accumulated[ak] = 0;
           }
-          delete accumulated[ak];
         }
 
         // plus anything that's already in this unit
         if (Util.isNumber(vals[k])) {
-          built[k] += vals[k];
+          own += vals[k];
         }
+
+        const i = Math.trunc(own);
+        built[k] = i;
+        accumulated[k] = own - i;
 
         // plus anything further down the chain that should be rolled up in to this
         for (const down in vals) {
@@ -505,11 +515,13 @@ export class Duration {
     if (lastUnit) {
       for (const key in accumulated) {
         if (accumulated.hasOwnProperty(key)) {
-          built[lastUnit] += accumulated[key] / this.matrix[lastUnit][key];
+          if (accumulated[key] > 0) {
+            built[lastUnit] +=
+              key === lastUnit ? accumulated[key] : accumulated[key] / this.matrix[lastUnit][key];
+          }
         }
       }
     }
-
     return clone(this, { values: built }, true);
   }
 
@@ -524,7 +536,7 @@ export class Duration {
     for (const k of Object.keys(this.values)) {
       negated[k] = -this.values[k];
     }
-    return clone(this, { values: negated });
+    return clone(this, { values: negated }, true);
   }
 
   /**

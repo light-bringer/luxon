@@ -1,5 +1,76 @@
 # Changelog
 
+## 0.4.0
+
+ * Always round down to the nearest millisecond when parsing
+
+## 0.3.1
+
+ * Fixed `toLocaleString` for fixed-offset zones in the absence of Intl
+ * Added `Info.isValidIANAZone`
+ * Made malformed zone specifiers result in invalid DateTime instances
+
+## 0.3.0
+
+ * Rename DateTime.fromString to DateTime.fromFormat (leaving deprecated DateTime.fromString)
+ * Rename DateTime.fromStringExplain to DateTime.fromFormatExplain (leaving deprecated DateTime.fromStringExplain)
+ * Support Etc/GMT IANA zones
+ * Perf fixes for zones
+ * Rework build infrastructure
+
+## 0.2.12
+
+ * Fix DateTime.fromObject's handling of default zones
+ * Change `keepCalendarTime` to `keepLocalTime`
+
+## 0.2.11
+
+ * Handle no arguments in `DateTime.min` and `DateTime.max`
+ * Documentation fixes
+
+## 0.2.10
+
+ * Fix bug where Durations could sometimes mutate
+
+## 0.2.9
+
+ * Fix `DateTime.fromMillis(0)` more thoroughly
+
+## 0.2.8
+
+ * Fix sourcemaps
+
+## 0.2.7
+
+ * Fix `DateTime.fromMillis(0)`
+
+## 0.2.6
+
+ * Fix 'h' and 'hh' `toFormat` tokens for midnight
+
+## 0.2.5
+
+ * Better `shiftTo` behavior for durations with floating point components
+
+## 0.2.4
+
+ * Fix `toHTTP` to use 24-hour hours
+ * Tighten up regular expressions
+ * Various documentation fixes
+
+## 0.2.3
+
+ * Fixes for `diff` with multiple units
+
+## 0.2.2
+
+ * Fixes for `fromSQL`, `toSQL`, `toSQLTime`, and `toSQLDate`
+ * Add `includeOffset` option to `toISO` and `toISOTime`
+
+## 0.2.1
+
+ * Add `module` field to package.json
+
 ## 0.2.0
 
  * Remove polyfills from main builds
@@ -74,7 +145,7 @@
 ## 0.0.7
 
  * Added `toLocaleParts`
- * Slighly more friendly month/weekday parsing
+ * Slightly more friendly month/weekday parsing
  * Default locale setting
 
 ## 0.0.6

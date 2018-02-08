@@ -14,8 +14,8 @@ Helpers.withoutIntl('DateTime#toFormat returns English', () => {
   ).toBe('Wed');
 });
 
-Helpers.withoutIntl('DateTime.fromString can still parse English', () => {
-  expect(DateTime.fromString('May 15, 2017', 'LLLL dd, yyyy').isValid).toBe(true);
+Helpers.withoutIntl('DateTime.fromFormat can still parse English', () => {
+  expect(DateTime.fromFormat('May 15, 2017', 'LLLL dd, yyyy').isValid).toBe(true);
 });
 
 Helpers.withoutIntl('DateTime#toLocaleString produces English short date by default', () => {
@@ -79,12 +79,12 @@ Helpers.withoutIntl('DateTime#toLocaleParts returns an empty array', () => {
   expect(DateTime.local().toLocaleParts()).toEqual([]);
 });
 
-Helpers.withoutIntl('DateTime.fromString can parse numbers in other locales', () => {
-  expect(DateTime.fromString('05/15/2017', 'LL/dd/yyyy', { locale: 'fr' }).isValid).toBe(true);
+Helpers.withoutIntl('DateTime.fromFormat can parse numbers in other locales', () => {
+  expect(DateTime.fromFormat('05/15/2017', 'LL/dd/yyyy', { locale: 'fr' }).isValid).toBe(true);
 });
 
-Helpers.withoutIntl("DateTime.fromString can't parse strings from other locales", () => {
-  expect(DateTime.fromString('mai 15, 2017', 'LLLL dd, yyyy', { locale: 'fr' }).isValid).toBe(
+Helpers.withoutIntl("DateTime.fromFormat can't parse strings from other locales", () => {
+  expect(DateTime.fromFormat('mai 15, 2017', 'LLLL dd, yyyy', { locale: 'fr' }).isValid).toBe(
     false
   );
 });
@@ -95,6 +95,14 @@ Helpers.withoutIntl('using time zones results in invalid DateTimes', () => {
 
 Helpers.withoutIntl("DateTime#zoneName falls back to 'local'", () => {
   expect(DateTime.local().zoneName).toBe('local');
+});
+
+Helpers.withoutIntl('DateTime#toLocaleString can use fixed-offset zones', () => {
+  expect(
+    DateTime.utc(2017, 5, 15, 4, 30)
+      .setZone('UTC+1')
+      .toLocaleString(DateTime.DATETIME_MED)
+  ).toBe('May 15, 2017, 5:30 AM');
 });
 
 Helpers.withoutIntl('DateTime#offsetNameLong returns null', () => {
@@ -132,16 +140,16 @@ Helpers.withoutFTP('DateTime#toFormat falls back to English', () => {
   ).toBe('Wed');
 });
 
-Helpers.withoutFTP('DateTime.fromString works in English', () => {
-  expect(DateTime.fromString('May 15, 2017', 'LLLL dd, yyyy').isValid).toBe(true);
+Helpers.withoutFTP('DateTime.fromFormat works in English', () => {
+  expect(DateTime.fromFormat('May 15, 2017', 'LLLL dd, yyyy').isValid).toBe(true);
 });
 
-Helpers.withoutFTP('DateTime.fromString can parse numbers in other locales', () => {
-  expect(DateTime.fromString('05/15/2017', 'LL/dd/yyyy', { locale: 'fr' }).isValid).toBe(true);
+Helpers.withoutFTP('DateTime.fromFormat can parse numbers in other locales', () => {
+  expect(DateTime.fromFormat('05/15/2017', 'LL/dd/yyyy', { locale: 'fr' }).isValid).toBe(true);
 });
 
-Helpers.withoutFTP("DateTime.fromString can't parse strings from other locales", () => {
-  expect(DateTime.fromString('mai 15, 2017', 'LLLL dd, yyyy', { locale: 'fr' }).isValid).toBe(
+Helpers.withoutFTP("DateTime.fromFormat can't parse strings from other locales", () => {
+  expect(DateTime.fromFormat('mai 15, 2017', 'LLLL dd, yyyy', { locale: 'fr' }).isValid).toBe(
     false
   );
 });

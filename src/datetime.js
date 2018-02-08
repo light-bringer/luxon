@@ -23,6 +23,7 @@ const INVALID = 'Invalid DateTime',
   UNSUPPORTED_ZONE = 'unsupported zone',
   UNPARSABLE = 'unparsable';
 
+// we cache week data on the DT object and this intermediates the cache
 function possiblyCachedWeekData(dt) {
   if (dt.weekData === null) {
     dt.weekData = Conversions.gregorianToWeek(dt.c);
@@ -30,6 +31,8 @@ function possiblyCachedWeekData(dt) {
   return dt.weekData;
 }
 
+// clone really means, "make a new object with these modifications". all "setters" really use this
+// to create a new object while only changing some of the properties
 function clone(inst, alts) {
   const current = {
     ts: inst.ts,
@@ -42,6 +45,8 @@ function clone(inst, alts) {
   return new DateTime(Object.assign({}, current, alts, { old: current }));
 }
 
+// find the right offset a given local time. The o input is our guess, which determines which
+// offset we'll pick in ambiguous cases (e.g. there are two 3 AMs b/c Fallback DST)
 function fixOffset(localTS, o, tz) {
   // Our UTC time is just a guess because our offset is just a guess
   let utcGuess = localTS - o * 60 * 1000;
@@ -67,6 +72,7 @@ function fixOffset(localTS, o, tz) {
   return [localTS - Math.min(o2, o3) * 60 * 1000, Math.max(o2, o3)];
 }
 
+// convert an epoch timestamp into a calendar object with the given offset
 function tsToObj(ts, offset) {
   ts += offset * 60 * 1000;
 
@@ -83,6 +89,7 @@ function tsToObj(ts, offset) {
   };
 }
 
+// covert a calendar object to a local timestamp (epoch, but with the offset baked in)
 function objToLocalTS(obj) {
   let d = Date.UTC(
     obj.year,
@@ -102,10 +109,12 @@ function objToLocalTS(obj) {
   return +d;
 }
 
+// convert a calendar object to a epoch timestamp
 function objToTS(obj, offset, zone) {
   return fixOffset(objToLocalTS(obj), offset, zone);
 }
 
+// create a new DT instance by adding a duration, adjusting for DSTs
 function adjustTime(inst, dur) {
   const oPre = inst.o,
     c = Object.assign({}, inst.c, {
@@ -132,6 +141,8 @@ function adjustTime(inst, dur) {
   return { ts, o };
 }
 
+// helper useful in turning the results of parsing into real dates
+// by handling the zone options
 function parseDataToDateTime(parsed, parsedZone, opts) {
   const { setZone, zone } = opts;
   if (parsed && Object.keys(parsed).length !== 0) {
@@ -147,12 +158,49 @@ function parseDataToDateTime(parsed, parsedZone, opts) {
   }
 }
 
-function techFormat(dt, format) {
+// if you want to output a technical format (e.g. RFC 2822), this helper
+// helps handle the details
+function toTechFormat(dt, format) {
   return dt.isValid
     ? Formatter.create(Locale.create('en-US')).formatDateTimeFromString(dt, format)
     : null;
 }
 
+// technical time formats (e.g. the time part of ISO 8601), take some options
+// and this commonizes their handling
+function toTechTimeFormat(
+  dt,
+  {
+    suppressSeconds = false,
+    suppressMilliseconds = false,
+    includeOffset = true,
+    includeZone = false,
+    spaceZone = false
+  }
+) {
+  let fmt = 'HH:mm';
+
+  if (!suppressSeconds || dt.second !== 0 || dt.millisecond !== 0) {
+    fmt += ':ss';
+    if (!suppressMilliseconds || dt.millisecond !== 0) {
+      fmt += '.SSS';
+    }
+  }
+
+  if ((includeZone || includeOffset) && spaceZone) {
+    fmt += ' ';
+  }
+
+  if (includeZone) {
+    fmt += 'z';
+  } else if (includeOffset) {
+    fmt += 'ZZ';
+  }
+
+  return toTechFormat(dt, fmt);
+}
+
+// defaults for unspecified units in the supported calendars
 const defaultUnitValues = {
     month: 1,
     day: 1,
@@ -177,26 +225,20 @@ const defaultUnitValues = {
     millisecond: 0
   };
 
-function isoTimeFormat(dateTime, suppressSecs, suppressMillis) {
-  return suppressSecs && dateTime.second === 0 && dateTime.millisecond === 0
-    ? 'HH:mmZ'
-    : suppressMillis && dateTime.millisecond === 0 ? 'HH:mm:ssZZ' : 'HH:mm:ss.SSSZZ';
-}
+// Units in the supported calendars, sorted by bigness
+const orderedUnits = ['year', 'month', 'day', 'hour', 'minute', 'second', 'millisecond'],
+  orderedWeekUnits = [
+    'weekYear',
+    'weekNumber',
+    'weekday',
+    'hour',
+    'minute',
+    'second',
+    'millisecond'
+  ],
+  orderedOrdinalUnits = ['year', 'ordinal', 'hour', 'minute', 'second', 'millisecond'];
 
-const orderedUnits = ['year', 'month', 'day', 'hour', 'minute', 'second', 'millisecond'];
-
-const orderedWeekUnits = [
-  'weekYear',
-  'weekNumber',
-  'weekday',
-  'hour',
-  'minute',
-  'second',
-  'millisecond'
-];
-
-const orderedOrdinalUnits = ['year', 'ordinal', 'hour', 'minute', 'second', 'millisecond'];
-
+// standardize case and plurality in units
 function normalizeUnit(unit, ignoreUnknown = false) {
   const normalized = {
     year: 'year',
@@ -234,8 +276,7 @@ function normalizeUnit(unit, ignoreUnknown = false) {
 function quickDT(obj, zone) {
   // assume we have the higher-order units
   for (const u of orderedUnits) {
-    const v = obj[u];
-    if (Util.isUndefined(v)) {
+    if (Util.isUndefined(obj[u])) {
       obj[u] = defaultUnitValues[u];
     }
   }
@@ -249,6 +290,7 @@ function quickDT(obj, zone) {
   const tsNow = Settings.now(),
     offsetProvis = zone.offset(tsNow),
     [ts, o] = objToTS(obj, offsetProvis, zone);
+
   return new DateTime({
     ts,
     zone,
@@ -266,7 +308,7 @@ function quickDT(obj, zone) {
  *
  * Here is a brief overview of the most commonly used functionality it provides:
  *
- * * **Creation**: To create a DateTime from its components, use one of its factory class methods: {@link local}, {@link utc}, and (most flexibly) {@link fromObject}. To create one from a standard string format, use {@link fromISO}, {@link fromHTTP}, and {@link fromRFC2822}. To create one from a custom string format, use {@link fromString}. To create one from a native JS date, use {@link fromJSDate}.
+ * * **Creation**: To create a DateTime from its components, use one of its factory class methods: {@link local}, {@link utc}, and (most flexibly) {@link fromObject}. To create one from a standard string format, use {@link fromISO}, {@link fromHTTP}, and {@link fromRFC2822}. To create one from a custom string format, use {@link fromFormat}. To create one from a native JS date, use {@link fromJSDate}.
  * * **Gregorian calendar and time**: To examine the Gregorian properties of a DateTime individually (i.e as opposed to collectively through {@link toObject}), use the {@link year}, {@link month},
  * {@link day}, {@link hour}, {@link minute}, {@link second}, {@link millisecond} accessors.
  * * **Week calendar**: For ISO week calendar attributes, see the {@link weekYear}, {@link weekNumber}, and {@link weekday} accessors.
@@ -285,21 +327,20 @@ export class DateTime {
       invalidReason =
         config.invalidReason ||
         (Number.isNaN(config.ts) ? INVALID_INPUT : null) ||
-        (!zone.isValid ? UNSUPPORTED_ZONE : null),
-      ts = config.ts || Settings.now();
+        (!zone.isValid ? UNSUPPORTED_ZONE : null);
+    /**
+     * @access private
+     */
+    this.ts = Util.isUndefined(config.ts) ? Settings.now() : config.ts;
 
     let c = null,
       o = null;
     if (!invalidReason) {
-      const unchanged = config.old && config.old.ts === ts && config.old.zone.equals(zone);
-      c = unchanged ? config.old.c : tsToObj(ts, zone.offset(ts));
-      o = unchanged ? config.old.o : zone.offset(ts);
+      const unchanged = config.old && config.old.ts === this.ts && config.old.zone.equals(zone);
+      c = unchanged ? config.old.c : tsToObj(this.ts, zone.offset(this.ts));
+      o = unchanged ? config.old.o : zone.offset(this.ts);
     }
 
-    /**
-     * @access private
-     */
-    this.ts = config.ts || Settings.now();
     /**
      * @access private
      */
@@ -567,7 +608,7 @@ export class DateTime {
    * Create a DateTime from an ISO 8601 string
    * @param {string} text - the ISO string
    * @param {Object} opts - options to affect the creation
-   * @param {boolean} [opts.zone='local'] - use this zone if no offset is specified in the input string itself. Will also convert the time to this zone
+   * @param {string|Zone} [opts.zone='local'] - use this zone if no offset is specified in the input string itself. Will also convert the time to this zone
    * @param {boolean} [opts.setZone=false] - override the zone with a fixed-offset zone specified in the string itself, if it specifies one
    * @param {string} [opts.locale='en-US'] - a locale to set on the resulting DateTime instance
    * @param {string} opts.outputCalendar - the output calendar to set on the resulting DateTime instance
@@ -575,7 +616,7 @@ export class DateTime {
    * @example DateTime.fromISO('2016-05-25T09:08:34.123')
    * @example DateTime.fromISO('2016-05-25T09:08:34.123+06:00')
    * @example DateTime.fromISO('2016-05-25T09:08:34.123+06:00', {setZone: true})
-   * @example DateTime.fromISO('2016-05-25T09:08:34.123', {zone: 'utc')
+   * @example DateTime.fromISO('2016-05-25T09:08:34.123', {zone: 'utc'})
    * @example DateTime.fromISO('2016-W05-4')
    * @return {DateTime}
    */
@@ -588,7 +629,7 @@ export class DateTime {
    * Create a DateTime from an RFC 2822 string
    * @param {string} text - the RFC 2822 string
    * @param {Object} opts - options to affect the creation
-   * @param {boolean} [opts.zone='local'] - convert the time to this zone. Since the offset is always specified in the string itself, this has no effect on the interpretation of string, merely the zone the resulting DateTime is expressed in.
+   * @param {string|Zone} [opts.zone='local'] - convert the time to this zone. Since the offset is always specified in the string itself, this has no effect on the interpretation of string, merely the zone the resulting DateTime is expressed in.
    * @param {boolean} [opts.setZone=false] - override the zone with a fixed-offset zone specified in the string itself, if it specifies one
    * @param {string} [opts.locale='en-US'] - a locale to set on the resulting DateTime instance
    * @param {string} opts.outputCalendar - the output calendar to set on the resulting DateTime instance
@@ -608,7 +649,7 @@ export class DateTime {
    * @see https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.3.1
    * @param {string} text - the HTTP header date
    * @param {object} options - options to affect the creation
-   * @param {boolean} [options.zone='local'] - convert the time to this zone. Since HTTP dates are always in UTC, this has no effect on the interpretation of string, merely the zone the resulting DateTime is expressed in.
+   * @param {string|Zone} [options.zone='local'] - convert the time to this zone. Since HTTP dates are always in UTC, this has no effect on the interpretation of string, merely the zone the resulting DateTime is expressed in.
    * @param {boolean} [options.setZone=false] - override the zone with the fixed-offset zone specified in the string. For HTTP dates, this is always UTC, so this option is equivalent to setting the `zone` option to 'utc', but this option is included for consistency with similar methods.
    * @param {string} [options.locale='en-US'] - a locale to set on the resulting DateTime instance
    * @param {string} options.outputCalendar - the output calendar to set on the resulting DateTime instance
@@ -629,16 +670,16 @@ export class DateTime {
    * @param {string} text - the string to parse
    * @param {string} fmt - the format the string is expected to be in (see description)
    * @param {Object} options - options to affect the creation
-   * @param {boolean} [options.zone='local'] - use this zone if no offset is specified in the input string itself. Will also convert the DateTime to this zone
+   * @param {string|Zone} [options.zone='local'] - use this zone if no offset is specified in the input string itself. Will also convert the DateTime to this zone
    * @param {boolean} [options.setZone=false] - override the zone with a zone specified in the string itself, if it specifies one
    * @param {string} [options.locale='en-US'] - a locale string to use when parsing. Will also set the DateTime to this locale
    * @param {string} options.numberingSystem - the numbering system to use when parsing. Will also set the resulting DateTime to this numbering system
    * @param {string} options.outputCalendar - the output calendar to set on the resulting DateTime instance
    * @return {DateTime}
    */
-  static fromString(text, fmt, options = {}) {
+  static fromFormat(text, fmt, options = {}) {
     if (Util.isUndefined(text) || Util.isUndefined(fmt)) {
-      throw new InvalidArgumentError('fromString requires an input string and a format');
+      throw new InvalidArgumentError('fromFormat requires an input string and a format');
     }
 
     const { locale = null, numberingSystem = null } = options,
@@ -652,11 +693,18 @@ export class DateTime {
   }
 
   /**
+   * @deprecated use fromFormat instead
+   */
+  static fromString(text, fmt, opts = {}) {
+    return DateTime.fromFormat(text, fmt, opts);
+  }
+
+  /**
    * Create a DateTime from a SQL date, time, or datetime
    * Defaults to en-US if no locale has been specified, regardless of the system's locale
    * @param {string} text - the string to parse
    * @param {Object} options - options to affect the creation
-   * @param {boolean} [options.zone='local'] - use this zone if no offset is specified in the input string itself. Will also convert the DateTime to this zone
+   * @param {string|Zone} [options.zone='local'] - use this zone if no offset is specified in the input string itself. Will also convert the DateTime to this zone
    * @param {boolean} [options.setZone=false] - override the zone with a zone specified in the string itself, if it specifies one
    * @param {string} [options.locale='en-US'] - a locale string to use when parsing. Will also set the DateTime to this locale
    * @param {string} options.numberingSystem - the numbering system to use when parsing. Will also set the resulting DateTime to this numbering system
@@ -664,9 +712,10 @@ export class DateTime {
    * @example DateTime.fromSQL('2017-05-15')
    * @example DateTime.fromSQL('2017-05-15 09:12:34')
    * @example DateTime.fromSQL('2017-05-15 09:12:34.342')
-   * @example DateTime.fromSQL('2017-05-15 09:12:34.342', { zone: 'America/Los_Angeles' })
    * @example DateTime.fromSQL('2017-05-15 09:12:34.342+06:00')
-   * @example DateTime.fromSQL('2017-05-15 09:12:34.342+06:00', { setZone: true })
+   * @example DateTime.fromSQL('2017-05-15 09:12:34.342 America/Los_Angeles')
+   * @example DateTime.fromSQL('2017-05-15 09:12:34.342 America/Los_Angeles', { setZone: true })
+   * @example DateTime.fromSQL('2017-05-15 09:12:34.342', { zone: 'America/Los_Angeles' })
    * @example DateTime.fromSQL('09:12:34.342')
    * @return {DateTime}
    */
@@ -976,7 +1025,7 @@ export class DateTime {
   /**
    * Returns the number of days in this DateTime's month
    * @example DateTime.local(2016, 2).daysInMonth //=> 29
-   * @example DateTime.local(2016, 3).days //=> 31
+   * @example DateTime.local(2016, 3).daysInMonth //=> 31
    * @return {number}
    */
   get daysInMonth() {
@@ -1037,19 +1086,20 @@ export class DateTime {
    * By default, the setter keeps the underlying time the same (as in, the same UTC timestamp), but the new instance will report different local times and consider DSTs when making computations, as with {@link plus}. You may wish to use {@link toLocal} and {@link toUTC} which provide simple convenience wrappers for commonly used zones.
    * @param {string|Zone} [zone='local'] - a zone identifier. As a string, that can be any IANA zone supported by the host environment, or a fixed-offset name of the form 'utc+3', or the strings 'local' or 'utc'. You may also supply an instance of a {@link Zone} class.
    * @param {object} opts - options
-   * @param {boolean} [opts.keepCalendarTime=false] - If true, adjust the underlying time so that the local time stays the same, but in the target zone. You should rarely need this.
+   * @param {boolean} [opts.keepLocalTime=false] - If true, adjust the underlying time so that the local time stays the same, but in the target zone. You should rarely need this.
    * @return {DateTime}
    */
-  setZone(zone, { keepCalendarTime = false } = {}) {
+  setZone(zone, { keepLocalTime = false, keepCalendarTime = false } = {}) {
     zone = Util.normalizeZone(zone);
     if (zone.equals(this.zone)) {
       return this;
     } else if (!zone.isValid) {
       return DateTime.invalid(UNSUPPORTED_ZONE);
     } else {
-      const newTS = keepCalendarTime
-        ? this.ts + (this.o - zone.offset(this.ts)) * 60 * 1000
-        : this.ts;
+      const newTS =
+        keepLocalTime || keepCalendarTime // keepCalendarTime is the deprecated name for keepLocalTime
+          ? this.ts + (this.o - zone.offset(this.ts)) * 60 * 1000
+          : this.ts;
       return clone(this, { ts: newTS, zone });
     }
   }
@@ -1077,12 +1127,12 @@ export class DateTime {
 
   /**
    * "Set" the values of specified units. Returns a newly-constructed DateTime.
+   * You can only set units with this method; for "setting" metadata, see {@link reconfigure} and {@link setZone}.
    * @param {object} values - a mapping of units to numbers
    * @example dt.set({ year: 2017 })
    * @example dt.set({ hour: 8, minute: 30 })
    * @example dt.set({ weekday: 5 })
    * @example dt.set({ year: 2005, ordinal: 234 })
-   * @example dt.set({ outputCalendar: 'beng', zone: 'utc' })
    * @return {DateTime}
    */
   set(values) {
@@ -1220,8 +1270,8 @@ export class DateTime {
    * @param {string} fmt - the format string
    * @param {object} opts - options
    * @param {boolean} opts.round - round numerical values
-   * @example DateTime.local().toFormat('yyyy LLL dd') //=> '2017 avr. 22'
-   * @example DateTime.local().setLocale('fr').toFormat('yyyy LLL dd') //=> '2017 Apr 22'
+   * @example DateTime.local().toFormat('yyyy LLL dd') //=> '2017 Apr 22'
+   * @example DateTime.local().setLocale('fr').toFormat('yyyy LLL dd') //=> '2017 avr. 22'
    * @example DateTime.local().toFormat("HH 'hours and' mm 'minutes'") //=> '20 hours and 55 minutes'
    * @return {string}
    */
@@ -1276,24 +1326,29 @@ export class DateTime {
   /**
    * Returns an ISO 8601-compliant string representation of this DateTime
    * @param {object} opts - options
-   * @param {boolean} opts.suppressMilliseconds - exclude milliseconds from the format if they're 0
-   * @param {boolean} opts.supressSeconds - exclude seconds from the format if they're 0
+   * @param {boolean} [opts.suppressMilliseconds=false] - exclude milliseconds from the format if they're 0
+   * @param {boolean} [opts.suppressSeconds=false] - exclude seconds from the format if they're 0
+   * @param {boolean} [opts.includeOffset=true] - include the offset, such as 'Z' or '-04:00'
    * @example DateTime.utc(1982, 5, 25).toISO() //=> '1982-05-25T00:00:00.000Z'
    * @example DateTime.local().toISO() //=> '2017-04-22T20:47:05.335-04:00'
+   * @example DateTime.local().toISO({ includeOffset: false }) //=> '2017-04-22T20:47:05.335'
    * @return {string}
    */
-  toISO({ suppressMilliseconds = false, suppressSeconds = false } = {}) {
-    const f = `yyyy-MM-dd'T'${isoTimeFormat(this, suppressSeconds, suppressMilliseconds)}`;
-    return techFormat(this, f);
+  toISO(opts = {}) {
+    if (!this.isValid) {
+      return null;
+    }
+
+    return `${this.toISODate()}T${this.toISOTime(opts)}`;
   }
 
   /**
    * Returns an ISO 8601-compliant string representation of this DateTime's date component
-   * @example DateTime.utc(1982, 5, 25).toISODate() //=> '07:34:19.361Z'
+   * @example DateTime.utc(1982, 5, 25).toISODate() //=> '1982-05-25'
    * @return {string}
    */
   toISODate() {
-    return techFormat(this, 'yyyy-MM-dd');
+    return toTechFormat(this, 'yyyy-MM-dd');
   }
 
   /**
@@ -1302,20 +1357,21 @@ export class DateTime {
    * @return {string}
    */
   toISOWeekDate() {
-    return techFormat(this, "kkkk-'W'WW-c");
+    return toTechFormat(this, "kkkk-'W'WW-c");
   }
 
   /**
    * Returns an ISO 8601-compliant string representation of this DateTime's time component
    * @param {object} opts - options
-   * @param {boolean} opts.suppressMilliseconds - exclude milliseconds from the format if they're 0
-   * @param {boolean} opts.supressSeconds - exclude seconds from the format if they're 0
+   * @param {boolean} [opts.suppressMilliseconds=false] - exclude milliseconds from the format if they're 0
+   * @param {boolean} [opts.suppressSeconds=false] - exclude seconds from the format if they're 0
+   * @param {boolean} [opts.includeOffset=true] - include the offset, such as 'Z' or '-04:00'
    * @example DateTime.utc().hour(7).minute(34).toISOTime() //=> '07:34:19.361Z'
    * @example DateTime.utc().hour(7).minute(34).toISOTime({ suppressSeconds: true }) //=> '07:34Z'
    * @return {string}
    */
-  toISOTime({ suppressMilliseconds = false, suppressSeconds = false } = {}) {
-    return techFormat(this, isoTimeFormat(this, suppressSeconds, suppressMilliseconds));
+  toISOTime({ suppressMilliseconds = false, suppressSeconds = false, includeOffset = true } = {}) {
+    return toTechTimeFormat(this, { suppressSeconds, suppressMilliseconds, includeOffset });
   }
 
   /**
@@ -1325,7 +1381,7 @@ export class DateTime {
    * @return {string}
    */
   toRFC2822() {
-    return techFormat(this, 'EEE, dd LLL yyyy hh:mm:ss ZZZ');
+    return toTechFormat(this, 'EEE, dd LLL yyyy hh:mm:ss ZZZ');
   }
 
   /**
@@ -1333,10 +1389,11 @@ export class DateTime {
    * Specifically, the string conforms to RFC 1123.
    * @see https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.3.1
    * @example DateTime.utc(2014, 7, 13).toHTTP() //=> 'Sun, 13 Jul 2014 00:00:00 GMT'
+   * @example DateTime.utc(2014, 7, 13, 19).toHTTP() //=> 'Sun, 13 Jul 2014 19:00:00 GMT'
    * @return {string}
    */
   toHTTP() {
-    return techFormat(this.toUTC(), "EEE, dd LLL yyyy hh:mm:ss 'GMT'");
+    return toTechFormat(this.toUTC(), "EEE, dd LLL yyyy HH:mm:ss 'GMT'");
   }
 
   /**
@@ -1345,25 +1402,41 @@ export class DateTime {
    * @return {string}
    */
   toSQLDate() {
-    return techFormat(this.toUTC(), 'yyyy-MM-dd');
+    return toTechFormat(this, 'yyyy-MM-dd');
   }
 
   /**
    * Returns a string representation of this DateTime appropriate for use in SQL Time
-   * @example DateTime.utc().hour(7).minute(34).toSQLTime() //=> '07:34:19.361'
+   * @param {object} opts - options
+   * @param {boolean} [opts.includeZone=false] - include the zone, such as 'America/New_York'. Overides includeOffset.
+   * @param {boolean} [opts.includeOffset=true] - include the offset, such as 'Z' or '-04:00'
+   * @example DateTime.utc().toSQL() //=> '05:15:16.345'
+   * @example DateTime.local().toSQL() //=> '05:15:16.345 -04:00'
+   * @example DateTime.local().toSQL({ includeOffset: false }) //=> '05:15:16.345'
+   * @example DateTime.local().toSQL({ includeZone: false }) //=> '05:15:16.345 America/New_York'
    * @return {string}
    */
-  toSQLTime() {
-    return techFormat(this.toUTC(), 'hh:mm:ss.SSS');
+  toSQLTime({ includeOffset = true, includeZone = false } = {}) {
+    return toTechTimeFormat(this, { includeOffset, includeZone, spaceZone: true });
   }
 
   /**
    * Returns a string representation of this DateTime appropriate for use in SQL DateTime
-   * @example DateTime.utc(2014, 7, 13).toSQL() //=> '2014-07-13 00:00:00.000'
+   * @param {object} opts - options
+   * @param {boolean} [opts.includeZone=false] - include the zone, such as 'America/New_York'. Overrides includeOffset.
+   * @param {boolean} [opts.includeOffset=true] - include the offset, such as 'Z' or '-04:00'
+   * @example DateTime.utc(2014, 7, 13).toSQL() //=> '2014-07-13 00:00:00.000 Z'
+   * @example DateTime.local(2014, 7, 13).toSQL() //=> '2014-07-13 00:00:00.000 -04:00'
+   * @example DateTime.local(2014, 7, 13).toSQL({ includeOffset: false }) //=> '2014-07-13 00:00:00.000'
+   * @example DateTime.local(2014, 7, 13).toSQL({ includeZone: false }) //=> '2014-07-13 00:00:00.000 America/New_York'
    * @return {string}
    */
-  toSQL() {
-    return techFormat(this.toUTC(), 'yyyy-MM-dd hh:mm:ss.SSS');
+  toSQL(opts = {}) {
+    if (!this.isValid) {
+      return null;
+    }
+
+    return `${this.toSQLDate()} ${this.toSQLTime(opts)}`;
   }
 
   /**
@@ -1380,8 +1453,9 @@ export class DateTime {
    */
   inspect() {
     if (this.isValid) {
-      return `DateTime {\n  ts: ${this.toISO()},\n  zone: ${this.zone.name},\n  locale: ${this
-        .locale} }`;
+      return `DateTime {\n  ts: ${this.toISO()},\n  zone: ${this.zone.name},\n  locale: ${
+        this.locale
+      } }`;
     } else {
       return `DateTime { Invalid, reason: ${this.invalidReason} }`;
     }
@@ -1425,7 +1499,7 @@ export class DateTime {
 
   /**
    * Returns a Javascript Date equivalent to this DateTime.
-   * @return {object}
+   * @return {Date}
    */
   toJSDate() {
     return new Date(this.isValid ? this.ts : NaN);
@@ -1493,7 +1567,7 @@ export class DateTime {
     const computeDayDelta = () => {
       const utcDayStart = dt =>
           dt
-            .toUTC(0, { keepCalendarTime: true })
+            .toUTC(0, { keepLocalTime: true })
             .startOf('day')
             .valueOf(),
         ms = utcDayStart(post) - utcDayStart(cursor);
@@ -1506,7 +1580,7 @@ export class DateTime {
       cursor = cursor.plus({ weeks });
 
       if (cursor > post) {
-        cursor.minus({ weeks: 1 });
+        cursor = cursor.minus({ weeks: 1 });
         weeks -= 1;
       }
 
@@ -1523,7 +1597,7 @@ export class DateTime {
       });
 
       if (cursor > post) {
-        cursor.minus({ days: 1 });
+        cursor = cursor.minus({ days: 1 });
         days -= 1;
       }
 
@@ -1597,7 +1671,7 @@ export class DateTime {
   /**
    * Return the min of several date times
    * @param {...DateTime} dateTimes - the DateTimes from which to choose the minimum
-   * @return {DateTime}
+   * @return {DateTime} the min DateTime, or undefined if called with no argument
    */
   static min(...dateTimes) {
     return Util.bestBy(dateTimes, i => i.valueOf(), Math.min);
@@ -1606,7 +1680,7 @@ export class DateTime {
   /**
    * Return the max of several date times
    * @param {...DateTime} dateTimes - the DateTimes from which to choose the maximum
-   * @return {DateTime}
+   * @return {DateTime} the max DateTime, or undefined if called with no argument
    */
   static max(...dateTimes) {
     return Util.bestBy(dateTimes, i => i.valueOf(), Math.max);
@@ -1615,15 +1689,22 @@ export class DateTime {
   // MISC
 
   /**
-   * Explain how a string would be parsed by fromString()
+   * Explain how a string would be parsed by fromFormat()
    * @param {string} text - the string to parse
    * @param {string} fmt - the format the string is expected to be in (see description)
-   * @param {object} options - options taken by fromString()
+   * @param {object} options - options taken by fromFormat()
    * @return {object}
    */
-  static fromStringExplain(text, fmt, options = {}) {
+  static fromFormatExplain(text, fmt, options = {}) {
     const parser = new TokenParser(Locale.fromOpts(options));
     return parser.explainParse(text, fmt);
+  }
+
+  /**
+   * @deprecated use fromFormatExplain instead
+   */
+  static fromStringExplain(text, fmt, options = {}) {
+    return DateTime.fromFormatExplain(text, fmt, options);
   }
 
   // FORMAT PRESETS

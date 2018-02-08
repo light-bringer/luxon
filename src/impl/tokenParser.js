@@ -152,7 +152,7 @@ function unitForToken(token, loc) {
         // we don't support ZZZZ (PST) or ZZZZZ (Pacific Standard Time) in parsing
         // because we don't have any way to figure out what they are
         case 'z':
-          return simple(/[A-Za-z_]+\/[A-Za-z_]+/);
+          return simple(/[A-Za-z_]{1,256}\/[A-Za-z_]{1,256}/);
         default:
           return literal(t);
       }
@@ -249,8 +249,7 @@ function dateTimeFromMatches(matches) {
   }
 
   if (!Util.isUndefined(matches.u)) {
-    const nanoseconds = parseInt(Util.padEnd(matches.u, 9));
-    matches.S = Math.round(nanoseconds / 1000000);
+    matches.S = Util.parseMillis(matches.u);
   }
 
   const vals = Object.keys(matches).reduce((r, k) => {

@@ -92,7 +92,7 @@ Here's the full set of provided presets using the October 14, 1983 at 13:30:23 a
 | TIME_24_WITH_LONG_OFFSET    | 24-hour time with seconds and full named offset                    | 13:30:23 Eastern Daylight Time                             | 13:30:23 heure d’été de l’Est                            |
 | DATETIME_SHORT              | short date & time                                                  | 10/14/1983, 1:30 PM                                        | 14/10/1983 à 13:30                                       |
 | DATETIME_MED                | abbreviated date & time                                            | Oct 14, 1983, 1:30 PM                                      | 14 oct. 1983 à 13:30                                     |
-| DATETIME_FULL               | full date and time with abbreviated named offset                   | 14 octobre 1983 à 13:30 UTC−4                              | 14 octobre 1983 à 13:30 UTC−4                            |
+| DATETIME_FULL               | full date and time with abbreviated named offset                   | October 14, 1983, 1:30 PM EDT                              | 14 octobre 1983 à 13:30 UTC−4                            |
 | DATETIME_HUGE               | full date and time with weekday and full named offset              | Friday, October 14, 1983, 1:30 PM Eastern Daylight Time    | vendredi 14 octobre 1983 à 13:30 heure d’été de l’Est    |
 | DATETIME_SHORT_WITH_SECONDS | short date & time with seconds                                     | 10/14/1983, 1:30:23 PM                                     | 14/10/1983 à 13:30:23                                    |
 | DATETIME_MED_WITH_SECONDS   | abbreviated date & time with seconds                               | Oct 14, 1983, 1:30:23 PM                                   | 14 oct. 1983 à 13:30:23                                  |
@@ -102,7 +102,7 @@ Here's the full set of provided presets using the October 14, 1983 at 13:30:23 a
 
 ### Intl
 
-`toLocaleString`'s behavior is affected by the DateTime's `locale`, `numberingSystem`, and `outputCalendar` properties. See the [Intl](usage/intl.html) section for more.
+`toLocaleString`'s behavior is affected by the DateTime's `locale`, `numberingSystem`, and `outputCalendar` properties. See the [Intl](intl.html) section for more.
 
 ## Formatting with tokens (strings for Cthulhu)
 
@@ -161,7 +161,7 @@ The macro options available correspond one-to-one with the preset formats define
 
 (Examples below given for 2014-08-06T13:07:04.054 considered as a local time in America/New_York).
 
-| Standlone token | Format token | Description                                                    | Example                                                     |
+| Standalone token | Format token | Description                                                    | Example                                                     |
 | ---             | ---          | ---                                                            | ---                                                         |
 | S               |              | millisecond, no padding                                        | 54                                                          |
 | SSS             |              | millisecond, padded to 3                                       | 054                                                         |
@@ -172,7 +172,7 @@ The macro options available correspond one-to-one with the preset formats define
 | mm              |              | minute, padded to 2                                            | 07                                                          |
 | h               |              | hour in 12-hour time, no padding                               | 1                                                           |
 | hh              |              | hour in 12-hour time, padded to 2                              | 01                                                          |
-| H               |              | hour in 24-hour time, padded to 2                              | 9                                                           |
+| H               |              | hour in 24-hour time, no padding                               | 9                                                           |
 | HH              |              | hour in 24-hour time, padded to 2                              | 13                                                          |
 | Z               |              | narrow offset                                                  | +5                                                          |
 | ZZ              |              | short offset                                                   | +05:00                                                      |

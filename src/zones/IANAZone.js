@@ -1,6 +1,23 @@
 import { Util } from '../impl/util';
 import { Zone } from '../zone';
 
+const dtfCache = {};
+function makeDTF(zone) {
+  if (!dtfCache[zone]) {
+    dtfCache[zone] = new Intl.DateTimeFormat('en-US', {
+      hour12: false,
+      timeZone: zone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+  return dtfCache[zone];
+}
+
 const typeToPos = {
   year: 0,
   month: 1,
@@ -31,28 +48,39 @@ function partsOffset(dtf, date) {
   return filled;
 }
 
-function isValid(zone) {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: zone }).format();
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
 /**
  * @private
  */
 
 export class IANAZone extends Zone {
-  static isValidSpecier(s) {
-    return s && s.match(/[a-z_]+\/[a-z_]+/i);
+  static isValidSpecifier(s) {
+    return s && s.match(/^[a-z_+-]{1,256}\/[a-z_+-]{1,256}$/i);
+  }
+
+  static isValidZone(zone) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: zone }).format();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Etc/GMT+8 -> 480
+  static parseGMTOffset(specifier) {
+    if (specifier) {
+      const match = specifier.match(/^Etc\/GMT([+-]\d{1,2})$/i);
+      if (match) {
+        return 60 * parseInt(match[1]);
+      }
+    }
+    return null;
   }
 
   constructor(name) {
     super();
     this.zoneName = name;
-    this.valid = isValid(name);
+    this.valid = IANAZone.isValidZone(name);
   }
 
   get type() {
@@ -73,16 +101,7 @@ export class IANAZone extends Zone {
 
   offset(ts) {
     const date = new Date(ts),
-      dtf = new Intl.DateTimeFormat('en-US', {
-        hour12: false,
-        timeZone: this.zoneName,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      }),
+      dtf = makeDTF(this.zoneName),
       [fYear, fMonth, fDay, fHour, fMinute, fSecond] = dtf.formatToParts
         ? partsOffset(dtf, date)
         : hackyOffset(dtf, date),

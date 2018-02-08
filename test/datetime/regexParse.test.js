@@ -123,6 +123,18 @@ test('DateTime.fromISO() accepts year-month', () => {
   });
 });
 
+test('DateTime.fromISO() accepts yearmonth', () => {
+  isSame('201605', {
+    year: 2016,
+    month: 5,
+    day: 1,
+    hour: 0,
+    minute: 0,
+    second: 0,
+    millisecond: 0
+  });
+});
+
 test('DateTime.fromISO() accepts year-month-day', () => {
   isSame('2016-05-25', {
     year: 2016,
@@ -181,7 +193,7 @@ test('DateTime.fromISO() accepts year-moth-dayThour', () => {
   });
 });
 
-test('DateTime.fromISO() accepts year-moth-dayThour:minute', () => {
+test('DateTime.fromISO() accepts year-month-dayThour:minute', () => {
   isSame('2016-05-25T09:24', {
     year: 2016,
     month: 5,
@@ -203,7 +215,7 @@ test('DateTime.fromISO() accepts year-moth-dayThour:minute', () => {
   });
 });
 
-test('DateTime.fromISO() accepts year-moth-dayThour:minute:second', () => {
+test('DateTime.fromISO() accepts year-month-dayThour:minute:second', () => {
   isSame('2016-05-25T09:24:15', {
     year: 2016,
     month: 5,
@@ -225,7 +237,7 @@ test('DateTime.fromISO() accepts year-moth-dayThour:minute:second', () => {
   });
 });
 
-test('DateTime.fromISO() accepts year-moth-dayThour:minute:second.millisecond', () => {
+test('DateTime.fromISO() accepts year-month-dayThour:minute:second.millisecond', () => {
   isSame('2016-05-25T09:24:15.123', {
     year: 2016,
     month: 5,
@@ -256,7 +268,7 @@ test('DateTime.fromISO() accepts year-moth-dayThour:minute:second.millisecond', 
     millisecond: 123
   });
 
-  isSame('2016-05-25T09:24:15.123456789', {
+  isSame('2016-05-25T09:24:15.1239999', {
     year: 2016,
     month: 5,
     day: 25,
@@ -276,6 +288,7 @@ test('DateTime.fromISO() accepts year-moth-dayThour:minute:second.millisecond', 
     millisecond: 23
   });
 
+  // we round down always
   isSame('2016-05-25T09:24:15.3456', {
     year: 2016,
     month: 5,
@@ -283,7 +296,17 @@ test('DateTime.fromISO() accepts year-moth-dayThour:minute:second.millisecond', 
     hour: 9,
     minute: 24,
     second: 15,
-    millisecond: 346
+    millisecond: 345
+  });
+
+  isSame('2016-05-25T09:24:15.999999', {
+    year: 2016,
+    month: 5,
+    day: 25,
+    hour: 9,
+    minute: 24,
+    second: 15,
+    millisecond: 999
   });
 
   isSame('2016-05-25T09:24:15.1', {
@@ -375,7 +398,7 @@ test('DateTime.fromISO() accepts year-ordinalTtime', () => {
   });
 });
 
-test('DateTime.fromISO() accepts time', () => {
+test('DateTime.fromISO() accepts hour:minute:second.millisecond', () => {
   const { year, month, day } = DateTime.local();
   isSame('09:24:15.123', {
     year,
@@ -385,6 +408,58 @@ test('DateTime.fromISO() accepts time', () => {
     minute: 24,
     second: 15,
     millisecond: 123
+  });
+});
+
+test('DateTime.fromISO() accepts hour:minute:second,millisecond', () => {
+  const { year, month, day } = DateTime.local();
+  isSame('09:24:15,123', {
+    year,
+    month,
+    day,
+    hour: 9,
+    minute: 24,
+    second: 15,
+    millisecond: 123
+  });
+});
+
+test('DateTime.fromISO() accepts hour:minute:second', () => {
+  const { year, month, day } = DateTime.local();
+  isSame('09:24:15', {
+    year,
+    month,
+    day,
+    hour: 9,
+    minute: 24,
+    second: 15,
+    millisecond: 0
+  });
+});
+
+test('DateTime.fromISO() accepts hour:minute', () => {
+  const { year, month, day } = DateTime.local();
+  isSame('09:24', {
+    year,
+    month,
+    day,
+    hour: 9,
+    minute: 24,
+    second: 0,
+    millisecond: 0
+  });
+});
+
+test('DateTime.fromISO() accepts hour:minute', () => {
+  const { year, month, day } = DateTime.local();
+  isSame('09:24', {
+    year,
+    month,
+    day,
+    hour: 9,
+    minute: 24,
+    second: 0,
+    millisecond: 0
   });
 });
 
@@ -655,8 +730,8 @@ test('DateTime.fromSQL() handles times without fractional seconds', () => {
   });
 });
 
-test('DateTime.fromSQL() can parse SQL datetimes', () => {
-  const dt = DateTime.fromSQL('2016-05-14 10:23:54.2346');
+test('DateTime.fromSQL() can parse SQL datetimes with sub-millisecond precision', () => {
+  let dt = DateTime.fromSQL('2016-05-14 10:23:54.2346');
   expect(dt.isValid).toBe(true);
   expect(dt.toObject()).toEqual({
     year: 2016,
@@ -665,7 +740,19 @@ test('DateTime.fromSQL() can parse SQL datetimes', () => {
     hour: 10,
     minute: 23,
     second: 54,
-    millisecond: 235
+    millisecond: 234
+  });
+
+  dt = DateTime.fromSQL('2016-05-14 10:23:54.2341');
+  expect(dt.isValid).toBe(true);
+  expect(dt.toObject()).toEqual({
+    year: 2016,
+    month: 5,
+    day: 14,
+    hour: 10,
+    minute: 23,
+    second: 54,
+    millisecond: 234
   });
 });
 
@@ -713,7 +800,7 @@ test('DateTime.fromSQL() accepts a zone to default to', () => {
 });
 
 test('DateTime.fromSQL() can parse an optional offset', () => {
-  let dt = DateTime.fromSQL('2016-05-14 10:23:54.023+06:00');
+  let dt = DateTime.fromSQL('2016-05-14 10:23:54.023 +06:00');
   expect(dt.isValid).toBe(true);
   expect(dt.toUTC().toObject()).toEqual({
     year: 2016,
@@ -725,13 +812,42 @@ test('DateTime.fromSQL() can parse an optional offset', () => {
     millisecond: 23
   });
 
-  dt = DateTime.fromSQL('2016-05-14 10:23:54+06:00');
+  // no space before the zone
+  dt = DateTime.fromSQL('2016-05-14 10:23:54.023+06:00');
   expect(dt.isValid).toBe(true);
   expect(dt.toUTC().toObject()).toEqual({
     year: 2016,
     month: 5,
     day: 14,
     hour: 4,
+    minute: 23,
+    second: 54,
+    millisecond: 23
+  });
+
+  // no milliseconds
+  dt = DateTime.fromSQL('2016-05-14 10:23:54 +06:00');
+  expect(dt.isValid).toBe(true);
+  expect(dt.toUTC().toObject()).toEqual({
+    year: 2016,
+    month: 5,
+    day: 14,
+    hour: 4,
+    minute: 23,
+    second: 54,
+    millisecond: 0
+  });
+});
+
+test('DateTime.fromSQL() can parse an optional zone', () => {
+  const dt = DateTime.fromSQL('2016-05-14 10:23:54 Europe/Paris', { setZone: true });
+  expect(dt.isValid).toBe(true);
+  expect(dt.zoneName).toBe('Europe/Paris');
+  expect(dt.toObject()).toEqual({
+    year: 2016,
+    month: 5,
+    day: 14,
+    hour: 10,
     minute: 23,
     second: 54,
     millisecond: 0

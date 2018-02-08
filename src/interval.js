@@ -6,6 +6,7 @@ import { InvalidArgumentError, InvalidIntervalError } from './errors';
 
 const INVALID = 'Invalid Interval';
 
+// checks if the start is equal to or before the end
 function validateStartEnd(start, end) {
   return !!start && !!end && start.isValid && end.isValid && start <= end;
 }
@@ -17,7 +18,7 @@ function validateStartEnd(start, end) {
  *
  * * **Creation** To create an Interval, use {@link fromDateTimes}, {@link after}, {@link before}, or {@link fromISO}.
  * * **Accessors** Use {@link start} and {@link end} to get the start and end.
- * * **Interogation** To analyze the Interval, use {@link count}, {@link length}, {@link hasSame}, {@link contains}, {@link isAfter}, or {@link isBefore}.
+ * * **Interrogation** To analyze the Interval, use {@link count}, {@link length}, {@link hasSame}, {@link contains}, {@link isAfter}, or {@link isBefore}.
  * * **Transformation** To create other Intervals out of this one, use {@link set}, {@link splitAt}, {@link splitBy}, {@link divideEqually}, {@link merge}, {@link xor}, {@link union}, {@link intersection}, or {@link difference}.
  * * **Comparison** To compare this Interval to another one, use {@link equals}, {@link overlaps}, {@link abutsStart}, {@link abutsEnd}, {@link engulfs}
  * * **Output*** To convert the Interval into other representations, see {@link toString}, {@link toISO}, {@link toFormat}, and {@link toDuration}.
@@ -186,7 +187,7 @@ export class Interval {
   }
 
   /**
-   * Return this Interval's start is after the specified DateTime.
+   * Return whether this Interval's start is after the specified DateTime.
    * @param {DateTime} dateTime
    * @return {boolean}
    */
@@ -196,7 +197,7 @@ export class Interval {
   }
 
   /**
-   * Return this Interval's end is before the specified DateTime.
+   * Return whether this Interval's end is before the specified DateTime.
    * @param {Datetime} dateTime
    * @return {boolean}
    */
@@ -206,7 +207,7 @@ export class Interval {
   }
 
   /**
-   * Return this Interval contains the specified DateTime.
+   * Return whether this Interval contains the specified DateTime.
    * @param {DateTime} dateTime
    * @return {boolean}
    */
@@ -335,6 +336,7 @@ export class Interval {
   /**
    * Return an Interval representing the intersection of this Interval and the specified Interval.
    * Specifically, the resulting Interval has the maximum start time and the minimum end time of the two Intervals.
+   * Returns null if the intersection is empty, i.e., the intervals don't intersect.
    * @param {Interval} other
    * @return {Interval}
    */
@@ -396,7 +398,8 @@ export class Interval {
       currentCount = 0;
     const results = [],
       ends = intervals.map(i => [{ time: i.s, type: 's' }, { time: i.e, type: 'e' }]),
-      arr = Util.flatten(ends).sort((a, b) => a.time - b.time);
+      flattened = Array.prototype.concat(...ends),
+      arr = flattened.sort((a, b) => a.time - b.time);
 
     for (const i of arr) {
       currentCount += i.type === 's' ? 1 : -1;

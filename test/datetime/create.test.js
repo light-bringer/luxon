@@ -238,10 +238,10 @@ test('DateTime.fromJSDate accepts the default locale', () => {
 // .fromMillis()
 //-------
 test('DateTime.fromMillis(ms) has a value of ms', () => {
-  const value = 391147200000,
-    dateTime = DateTime.fromMillis(value);
+  const bigValue = 391147200000;
+  expect(DateTime.fromMillis(bigValue).valueOf()).toBe(bigValue);
 
-  expect(dateTime.valueOf()).toBe(value);
+  expect(DateTime.fromMillis(0).valueOf()).toBe(0);
 });
 
 test('DateTime.fromMillis(ms) accepts a zone option', () => {
@@ -352,6 +352,12 @@ test('DateTime.fromObject() accepts a Zone as the zone option', () => {
   expect(standard.minute).toBe(23);
   expect(standard.second).toBe(54);
   expect(standard.millisecond).toBe(123);
+});
+
+test('DateTime.fromObject() rejects invalid zones', () => {
+  const dt = DateTime.fromObject({ zone: 'blorp' });
+  expect(dt.isValid).toBe(false);
+  expect(dt.invalidReason).toBe('unsupported zone');
 });
 
 test('DateTime.fromObject() defaults high-order values to the current date', () => {
@@ -467,4 +473,19 @@ test('DateTime.fromObject accepts really low year numbers', () => {
   expect(dt.year).toBe(5);
   expect(dt.month).toBe(1);
   expect(dt.day).toBe(1);
+});
+
+test('DateTime.fromObject accepts plurals and weird capitalization', () => {
+  const dt = DateTime.fromObject({ Year: 2005, months: 12, dAy: 13 });
+  expect(dt.year).toBe(2005);
+  expect(dt.month).toBe(12);
+  expect(dt.day).toBe(13);
+});
+
+test('DateTime.fromObject validates weekdays', () => {
+  let dt = DateTime.fromObject({ year: 2005, months: 12, day: 13, weekday: 1 });
+  expect(dt.isValid).toBe(false);
+
+  dt = DateTime.fromObject({ year: 2005, months: 12, day: 13, weekday: 2 });
+  expect(dt.isValid).toBe(true);
 });

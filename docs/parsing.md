@@ -20,6 +20,7 @@ All of these are parsable by `fromISO`:
 ```
 2016
 2016-05
+201605
 2016-05-25
 20160525
 2016-05-25T09
@@ -37,9 +38,15 @@ All of these are parsable by `fromISO`:
 2016-200
 2016200
 2016-200T09:24:15.123
+09:24
+09:24:15
+09:24:15.123
+09:24:15,123
 ```
 
-Missing lower-order values are always set to the minimum possible value. Midnight if the hours aren't specified, the first of the month if the day isn't, January if the month isn't, etc.
+ * In addition, all the times support offset arguments like "Z" and "+06:00".
+ * Missing lower-order values are always set to the minimum possible value; i.e. it always parses to a full DateTime. For example, "2016-05-25" parses to midnight of that day. "2016-05" parses to the first of the month, etc.
+ * The time is parsed as a local time if no offset is specified, but see the method docs to see your options, and also check out [time zone docs](zones.html) for more details.
 
 ### HTTP and RFC2822
 
@@ -50,6 +57,18 @@ DateTime.fromRFC2822('Tue, 01 Nov 2016 13:23:12 +0630');
 DateTime.fromHTTP('Sunday, 06-Nov-94 08:49:37 GMT');
 DateTime.fromHTTP('Sun, 06 Nov 1994 08:49:37 GMT');
 ```
+
+### SQL
+
+Luxon accepts SQL dates, times, and datetimes, via [fromSQL](../class/src/datetime.js~DateTime.html#static-method-fromSQL):
+
+```js
+DateTime.fromSQL('2017-05-15');
+DateTime.fromSQL('2017-05-15 09:24:15');
+DateTime.fromSQL('09:24:15');
+```
+
+It works similarly to `fromISO`, so see above for additional notes.
 
 ## Ad-hoc parsing
 
@@ -62,12 +81,12 @@ You generally shouldn't use Luxon to parse arbitrarily formatted date strings:
 
 Sometimes, though, you get a string from some legacy system in some terrible ad-hoc format and you need to parse it.
 
-### fromString
+### fromFormat
 
-See [DateTime.fromString](../class/src/datetime.js~DateTime.html#static-method-fromString) for the method signature. A brief example:
+See [DateTime.fromFormat](../class/src/datetime.js~DateTime.html#static-method-fromFormat) for the method signature. A brief example:
 
 ```js
-DateTime.fromString('May 25 1982', 'LLLL dd yyyy');
+DateTime.fromFormat('May 25 1982', 'LLLL dd yyyy');
 ```
 
 ### Intl
@@ -75,10 +94,10 @@ DateTime.fromString('May 25 1982', 'LLLL dd yyyy');
 Luxon supports parsing internationalized strings:
 
 ```js
-DateTime.fromString('mai 25 1982', 'LLLL dd yyyy', { locale: 'fr' });
+DateTime.fromFormat('mai 25 1982', 'LLLL dd yyyy', { locale: 'fr' });
 ```
 
-Note, however, that Luxon derives the list of strings that can match, say, "LLLL" (and their meaning) by introspecting the environment's Intl implementation. Thus the exact strings may in some cases be environment-specific. You also need the Intl API available on the target platform (see the [support matrix](faq/matrix.html)).
+Note, however, that Luxon derives the list of strings that can match, say, "LLLL" (and their meaning) by introspecting the environment's Intl implementation. Thus the exact strings may in some cases be environment-specific. You also need the Intl API available on the target platform (see the [support matrix](matrix.html)).
 
 ### Limitations
 
@@ -90,12 +109,12 @@ Not every token supported by `DateTime#toFormat` is supported in the parser. For
 
 ### Debugging
 
-There are two kinds of things that can go wrong when parsing a string: a) you make a mistake with the tokens or b) the information parsed from the string does not correspond to a valid date. To help you sort that out, Luxon provides a method called [fromStringExplain](../class/src/datetime.js~DateTime.html#static-method-fromStringExplain). It takes the same arguments as `fromString` but returns a map of information about the parse that can be useful in debugging.
+There are two kinds of things that can go wrong when parsing a string: a) you make a mistake with the tokens or b) the information parsed from the string does not correspond to a valid date. To help you sort that out, Luxon provides a method called [fromFormatExplain](../class/src/datetime.js~DateTime.html#static-method-fromFormatExplain). It takes the same arguments as `fromFormat` but returns a map of information about the parse that can be useful in debugging.
 
 For example, here the code is using "MMMM" where "MMM" was needed. You can see the regex Luxon uses and see that it didn't match anything:
 
 ```js
-> DateTime.fromStringExplain("Aug 6 1982", "MMMM d yyyy")
+> DateTime.fromFormatExplain("Aug 6 1982", "MMMM d yyyy")
 
 { input: 'Aug 6 1982',
   tokens:
@@ -113,15 +132,15 @@ For example, here the code is using "MMMM" where "MMM" was needed. You can see t
 If you parse something and get an invalid date, the debugging steps are slightly different. Here, we're attempting to parse August 32nd, which doesn't exist:
 
 ```js
-var d = DateTime.fromString("August 32 1982", "MMMM d yyyy")
+var d = DateTime.fromFormat("August 32 1982", "MMMM d yyyy")
 d.isValid //=> false
 d.invalidReason //=> 'day out of range'
 ```
 
-For more on validity and how to debug it, see [validity](usage/validity.html). You may find more comprehensive tips there. But as it applies specifically to `fromString`, again try `fromStringExplain`:
+For more on validity and how to debug it, see [validity](validity.html). You may find more comprehensive tips there. But as it applies specifically to `fromFormat`, again try `fromFormatExplain`:
 
 ```js
-> DateTime.fromStringExplain("August 32 1982", "MMMM d yyyy")
+> DateTime.fromFormatExplain("August 32 1982", "MMMM d yyyy")
 
 { input: 'August 32 1982',
   tokens:
@@ -142,7 +161,7 @@ Because Luxon was able to parse the string without difficulty, the output is a l
 
 (Examples below given for 2014-08-06T13:07:04.054 considered as a local time in America/New_York).
 
-| Standlone token | Format token | Description                                                    |                   Example |
+| Standalone token | Format token | Description                                                    |                   Example |
 | ---             | ---          | ---                                                            |                       --- |
 | S               |              | millisecond, no padding                                        |                        54 |
 | SSS             |              | millisecond, padded to 3                                       |                       054 |

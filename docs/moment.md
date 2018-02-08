@@ -50,14 +50,14 @@ Here's a rough mapping of DateTime methods in Moment to ones in Luxon. I haven't
 | Now                     | `moment()`               | `DateTime.local()`                    |                                                                                                                                      |
 | From ISO                | `moment(String)`         | `DateTime.fromISO(String)`            |                                                                                                                                      |
 | From RFC 2822           | `moment(String)`         | `DateTime.fromRFC2822(String)`        |                                                                                                                                      |
-| From custom format      | `moment(String, String)` | `DateTime.fromString(String, String)` |                                                                                                                                      |
+| From custom format      | `moment(String, String)` | `DateTime.fromFormat(String, String)` | The format tokens differ between Moment and Luxon, such that the same format string cannot be used between the two.             |
 | From object             | `moment(Object)`         | `DateTime.fromObject(Object)`         |                                                                                                                                      |
 | From timestamp          | `moment(Number)`         | `DateTime.fromMillis(Number)`         |                                                                                                                                      |
 | From JS Date            | `moment(Date)`           | `DateTime.fromJSDate(Date)`           |                                                                                                                                      |
 | From civil time         | `moment(Array)`          | `DateTime.local(Number...)`           | Like `DateTime.local(2016, 12, 25, 10, 30)`                                                                                          |
 | From UTC civil time     | `moment.utc(Array)`      | `DateTime.utc(Number...)`             | Luxon also uses `moment.utc()` to take other arguments. In Luxon, use the appropriate method and pass in the `{ zone: 'utc'}` option |
 | Clone                   | `moment(Moment)`         | N/A                                   | Immutability makes this pointless; just reuse the object                                                                             |
-| Use the string's offset | `parseZone`              | See note                              | Methods taking strings that can specify offset or zone take a `keepZone` argument                                                    |
+| Use the string's offset | `parseZone`              | See note                              | Methods taking strings that can specify offset or zone take a `setZone` argument                                                    |
 
 ### Getters and setters
 
@@ -104,7 +104,7 @@ For programmatic getting and setting, Luxon and Moment are very similar here:
 | Start of unit      | `startOf(String)`          | `startOf(String)`   |                                         |
 | End of unit        | `endOf(String)`            | `endOf(String)`     |                                         |
 | Change unit values | `set(Object)`              | `set(Object)`       | Like `dt.set({ year: 2016, month: 3 })` |
-| Change time zone   | `tz(String)`               | `zone(string)`      | Luxon doesn't require a plugin          |
+| Change time zone   | `tz(String)`               | `setZone(string)`      | Luxon doesn't require a plugin          |
 | Change zone to utc | `utc()`                    | `toUTC()`           |                                         |
 | Change local zone  | `local()`                  | `toLocal()`         |                                         |
 | Change offset      | `utcOffset(Number)`        | None                | Set the zone instead                    |
@@ -129,7 +129,7 @@ For programmatic getting and setting, Luxon and Moment are very similar here:
 
 #### Basics
 
-See the [formatting guide](usage/formatting.html) for more about the string-outputting methods.
+See the [formatting guide](formatting.html) for more about the string-outputting methods.
 
 | Output               | Moment         | Luxon            | Notes                                                                                                                                             |
 |----------------------|----------------|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -137,7 +137,7 @@ See the [formatting guide](usage/formatting.html) for more about the string-outp
 | full ISO 8601        | `iso()`        | `toISO()`        |                                                                                                                                                   |
 | ISO date only        | None           | `toISODate()`    |                                                                                                                                                   |
 | ISO time only        | None           | `toISOTime()`    |                                                                                                                                                   |
-| custom format        | `format(...)`  | `toFormat(...)`  |                                                                                                                                                   |
+| custom format        | `format(...)`  | `toFormat(...)`  | The format tokens differ between Moment and Luxon, such that the same format string cannot be used between the two.                            |
 | RFC 2822             |                | `toRFC2822()`    |                                                                                                                                                   |
 | HTTP date string     |                | `toHTTP()`       |                                                                                                                                                   |
 | JS Date              | `toDate()`     | `toJSDate()`     |                                                                                                                                                   |
@@ -161,7 +161,7 @@ Luxon doesn't support these, and won't until the [Relative Time Format](https://
 
 Moment Durations and Luxon Durations are broadly similar in purpose and capabilities. The main differences are:
 
- 1. Luxon durations have more sophisticated conversion capabilities. They can convert from one set of units to another using `shiftTo`. They can also be configured to use different unit conversions. See [Duration Math](usage/math.html#duration-math) for more.
+ 1. Luxon durations have more sophisticated conversion capabilities. They can convert from one set of units to another using `shiftTo`. They can also be configured to use different unit conversions. See [Duration Math](math.html#duration-math) for more.
  1. Luxon does not (yet) have an equivalent of Moment's `humanize` method
  1. Like DateTimes, Luxon Durations have separate methods for creating objects from different sources.
 
