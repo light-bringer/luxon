@@ -5,7 +5,8 @@ import { RegexParser } from './impl/regexParser';
 import { Settings } from './settings';
 import { InvalidArgumentError, InvalidDurationError, InvalidUnitError } from './errors';
 
-const INVALID = 'Invalid Duration';
+const INVALID = 'Invalid Duration',
+ UNPARSABLE = 'unparsable';
 
 // unit conversion constants
 const lowOrderMatrix = {
@@ -37,6 +38,14 @@ const lowOrderMatrix = {
         seconds: 365 * 24 * 60 * 60,
         milliseconds: 365 * 24 * 60 * 60 * 1000
       },
+      quarters: {
+        months: 3,
+        weeks: 13,
+        days: 91,
+        hours: 91 * 24,
+        minutes: 91 * 24 * 60,
+        milliseconds: 91 * 24 * 60 * 60 * 1000
+      },
       months: {
         weeks: 4,
         days: 30,
@@ -61,6 +70,15 @@ const lowOrderMatrix = {
         seconds: daysInYearAccurate * 24 * 60 * 60,
         milliseconds: daysInYearAccurate * 24 * 60 * 60 * 1000
       },
+      quarters: {
+        months: 3,
+        weeks: daysInYearAccurate / 28,
+        days: daysInYearAccurate / 4,
+        hours: daysInYearAccurate * 24 / 4,
+        minutes: daysInYearAccurate * 24 * 60 / 4,
+        seconds: daysInYearAccurate * 24 * 60 * 60 / 4,
+        milliseconds: daysInYearAccurate * 24 * 60 * 60 * 1000 / 4
+      },
       months: {
         weeks: daysInMonthAccurate / 7,
         days: daysInMonthAccurate,
@@ -76,6 +94,7 @@ const lowOrderMatrix = {
 // units ordered by size
 const orderedUnits = [
   'years',
+  'quarters',
   'months',
   'weeks',
   'days',
@@ -164,6 +183,7 @@ export class Duration {
    * Create an Duration from a Javascript object with keys like 'years' and 'hours'.
    * @param {Object} obj - the object to create the DateTime from
    * @param {number} obj.years
+   * @param {number} obj.quarters
    * @param {number} obj.months
    * @param {number} obj.weeks
    * @param {number} obj.days
@@ -198,8 +218,13 @@ export class Duration {
    * @return {Duration}
    */
   static fromISO(text, opts) {
-    const obj = Object.assign(RegexParser.parseISODuration(text), opts);
-    return Duration.fromObject(obj);
+    const [parsed] = RegexParser.parseISODuration(text);
+    if (parsed) {
+      const obj = Object.assign(parsed, opts);
+      return Duration.fromObject(obj);
+    } else {
+      return Duration.invalid(UNPARSABLE);
+    }
   }
 
   /**
@@ -225,6 +250,8 @@ export class Duration {
     const normalized = {
       year: 'years',
       years: 'years',
+      quarter: 'quarters',
+      quarters: 'quarters',
       month: 'months',
       months: 'months',
       week: 'weeks',
@@ -316,7 +343,7 @@ export class Duration {
     norm = isHighOrderNegative(norm.values) ? norm.negate() : norm;
 
     if (norm.years > 0) s += norm.years + 'Y';
-    if (norm.months > 0) s += norm.months + 'M';
+    if (norm.months > 0 || norm.quarters > 0) s += norm.months + norm.quarters * 3 + 'M';
     if (norm.days > 0 || norm.weeks > 0) s += norm.days + norm.weeks * 7 + 'D';
     if (norm.hours > 0 || norm.minutes > 0 || norm.seconds > 0 || norm.milliseconds > 0) s += 'T';
     if (norm.hours > 0) s += norm.hours + 'H';
@@ -545,6 +572,14 @@ export class Duration {
    */
   get years() {
     return this.isValid ? this.values.years || 0 : NaN;
+  }
+
+  /**
+   * Get the quarters.
+   * @return {number}
+   */
+  get quarters() {
+    return this.isValid ? this.values.quarters || 0 : NaN;
   }
 
   /**

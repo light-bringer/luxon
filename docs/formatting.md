@@ -34,7 +34,7 @@ dt.toHTTP();    //=> 'Thu, 20 Apr 2017 03:32:00 GMT'
 
 ### The basics
 
-Modern browsers (and other JS environments) provide brought support for human-readable, internationalized strings. Luxon provides convenient support for them, and you should use them anytime you want to display a time to a user. Use [toLocaleString](../class/src/datetime.js~DateTime.html#instance-method-toLocaleString) to do it:
+Modern browsers (and other JS environments) provide support for human-readable, internationalized strings. Luxon provides convenient support for them, and you should use them anytime you want to display a time to a user. Use [toLocaleString](../class/src/datetime.js~DateTime.html#instance-method-toLocaleString) to do it:
 
 ```js
 dt.toLocaleString();                                       //=> '4/20/2017'
@@ -76,7 +76,7 @@ dt.toLocaleString(newFormat); //=>  'Thursday, 4/20/2017'
 
 Here's the full set of provided presets using the October 14, 1983 at 13:30:23 as an example.
 
-| Name                        | Description                                                        | Example in EN_US                                           | Example in FR                                            |
+| Name                        | Description                                                        | Example in en_US                                           | Example in fr                                            |
 | ---                         | ---                                                                | ---                                                        | ---                                                      |
 | DATE_SHORT                  | short date                                                         | 10/14/1983                                                 | 14/10/1983                                               |
 | DATE_MED                    | abbreviated date                                                   | Oct 14, 1983                                               | 14 oct. 1983                                             |
@@ -224,3 +224,5 @@ The macro options available correspond one-to-one with the preset formats define
 | FF              |              | less short localized date and time with seconds                | Aug 6, 2014, 1:07:04 PM                                     |
 | FFF             |              | verbose localized date and time with seconds                   | August 6, 2014, 1:07:04 PM EDT                              |
 | FFFF            |              | extra verbose localized date and time with seconds             | Wednesday, August 6, 2014, 1:07:04 PM Eastern Daylight Time |
+| q               |              | quarter, no padding                                            | 9                                                           |
+| qq              |              | quarter, padded to 2                                           | 13                                                          |
