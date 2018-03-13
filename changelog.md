@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.6
+
+ * Refactor internals
+ * Added support for fractional seconds in `Duration.fromISO`
+ * Added browser global to the NPM package
+
+## 0.5.5
+
+ * Best-we-can-do fix for `DateTime#toLocaleString()` for fixed-offset zones when showing the zone name in the output
+ * Fixed `Duration#shiftTo` for unormalized Durations that need a rollup cascade
+
+## 0.5.4
+
+ * Fix default locales in Node
+ * Fix prototype to help with React inspection
+ * Improve REPL output for Durations in Node
+
+## 0.5.3
+ * Remove errant ICU runtime dep (again)
+
 ## 0.5.2
  * Remove comments from minified builds (introduced by 0.5.1)
 

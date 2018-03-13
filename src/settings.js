@@ -1,6 +1,7 @@
-import { LocalZone } from './zones/localZone';
-import { Util } from './impl/util';
-import { Locale } from './impl/locale';
+import LocalZone from './zones/localZone';
+import Locale from './impl/locale';
+
+import { normalizeZone } from './impl/zoneUtil';
 
 let now = () => new Date().valueOf(),
   defaultZone = null, // not setting this directly to LocalZone.instance bc loading order issues
@@ -12,7 +13,7 @@ let now = () => new Date().valueOf(),
 /**
  * Settings contains static getters and setters that control Luxon's overall behavior. Luxon is a simple library with few options, but the ones it does have live here.
  */
-export class Settings {
+export default class Settings {
   /**
    * Get the callback for returning the current timestamp.
    * @type {function}
@@ -45,7 +46,7 @@ export class Settings {
     if (!z) {
       defaultZone = null;
     } else {
-      defaultZone = Util.normalizeZone(z);
+      defaultZone = normalizeZone(z);
     }
   }
 
@@ -107,7 +108,7 @@ export class Settings {
 
   /**
    * Get whether Luxon will throw when it encounters invalid DateTimes, Durations, or Intervals
-   * @type {Zone}
+   * @type {boolean}
    */
   static get throwOnInvalid() {
     return throwOnInvalid;
@@ -115,7 +116,7 @@ export class Settings {
 
   /**
    * Set whether Luxon will throw when it encounters invalid DateTimes, Durations, or Intervals
-   * @type {Zone}
+   * @type {boolean}
    */
   static set throwOnInvalid(t) {
     throwOnInvalid = t;

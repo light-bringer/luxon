@@ -64,6 +64,14 @@ test('Duration#shiftTo without any units no-ops', () => {
   expect(dur.toObject()).toEqual({ years: 3 });
 });
 
+test('Duration#shifTo accumulates when rolling up', () => {
+  expect(
+    Duration.fromObject({ minutes: 59, seconds: 183 })
+      .shiftTo('hours', 'minutes', 'seconds')
+      .toObject()
+  ).toEqual({ hours: 1, minutes: 2, seconds: 3 });
+});
+
 //------
 // #normalize()
 //-------
