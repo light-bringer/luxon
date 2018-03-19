@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.8
+ *  Large perf improvements for `DateTime#toFormat()`, when using non-intl numbers
+
+## 0.5.7
+
+ * Added AMD build to the NPM package
+ * Large performance improvements to technical formatting (e.g. `DateTime#toISO`)
+
 ## 0.5.6
 
  * Refactor internals

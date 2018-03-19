@@ -1,5 +1,6 @@
 import * as English from './english';
 import * as Formats from './formats';
+import { padStart } from './util';
 
 function stringifyTokens(splits, tokenToString) {
   let s = '';
@@ -110,6 +111,11 @@ export default class Formatter {
   }
 
   num(n, p = 0) {
+    // we get some perf out of doing this here, annoyingly
+    if (this.opts.forceSimple) {
+      return padStart(n, p);
+    }
+
     const opts = Object.assign({}, this.opts);
 
     if (p > 0) {
