@@ -15,6 +15,7 @@ import {
   daysInMonth,
   daysInYear,
   isLeapYear,
+  weeksInWeekYear,
   normalizeObject
 } from './impl/util';
 import { normalizeZone } from './impl/zoneUtil';
@@ -185,10 +186,10 @@ function parseDataToDateTime(parsed, parsedZone, opts) {
 // helps handle the details
 function toTechFormat(dt, format) {
   return dt.isValid
-    ? Formatter.create(Locale.create('en-US'), { forceSimple: true }).formatDateTimeFromString(
-        dt,
-        format
-      )
+    ? Formatter.create(Locale.create('en-US'), {
+        allowZ: true,
+        forceSimple: true
+      }).formatDateTimeFromString(dt, format)
     : null;
 }
 
@@ -410,7 +411,7 @@ export default class DateTime {
    * @example DateTime.local(2017, 3, 12, 5)              //~> 2017-03-12T05:00:00
    * @example DateTime.local(2017, 3, 12, 5, 45)          //~> 2017-03-12T05:45:00
    * @example DateTime.local(2017, 3, 12, 5, 45, 10)      //~> 2017-03-12T05:45:10
-   * @example DateTime.local(2017, 3, 12, 5, 45, 10, 765) //~> 2017-03-12T05:45:10.675
+   * @example DateTime.local(2017, 3, 12, 5, 45, 10, 765) //~> 2017-03-12T05:45:10.765
    * @return {DateTime}
    */
   static local(year, month, day, hour, minute, second, millisecond) {
@@ -448,7 +449,7 @@ export default class DateTime {
    * @example DateTime.utc(2017, 3, 12, 5)              //~> 2017-03-12T05:00:00Z
    * @example DateTime.utc(2017, 3, 12, 5, 45)          //~> 2017-03-12T05:45:00Z
    * @example DateTime.utc(2017, 3, 12, 5, 45, 10)      //~> 2017-03-12T05:45:10Z
-   * @example DateTime.utc(2017, 3, 12, 5, 45, 10, 765) //~> 2017-03-12T05:45:10.675Z
+   * @example DateTime.utc(2017, 3, 12, 5, 45, 10, 765) //~> 2017-03-12T05:45:10.765Z
    * @return {DateTime}
    */
   static utc(year, month, day, hour, minute, second, millisecond) {
@@ -1074,6 +1075,17 @@ export default class DateTime {
   }
 
   /**
+   * Returns the number of weeks in this DateTime's year
+   * @see https://en.wikipedia.org/wiki/ISO_week_date
+   * @example DateTime.local(2004).weeksInWeekYear //=> 53
+   * @example DateTime.local(2013).weeksInWeekYear //=> 52
+   * @type {number}
+   */
+  get weeksInWeekYear() {
+    return this.isValid ? weeksInWeekYear(this.weekYear) : NaN;
+  }
+
+  /**
    * Returns the resolved Intl options for this DateTime.
    * This is useful in understanding the behavior of formatting methods
    * @param {Object} opts - the same options as toLocaleString
@@ -1270,7 +1282,8 @@ export default class DateTime {
     }
 
     if (normalizedUnit === 'quarters') {
-      o.month = Math.floor(this.month / 3) * 3 + 1;
+      const q = Math.ceil(this.month / 3);
+      o.month = (q - 1) * 3 + 1;
     }
 
     return this.set(o);
@@ -1279,7 +1292,7 @@ export default class DateTime {
   /**
    * "Set" this DateTime to the end (i.e. the last millisecond) of a unit of time
    * @param {string} unit - The unit to go to the end of. Can be 'year', 'month', 'day', 'hour', 'minute', 'second', or 'millisecond'.
-   * @example DateTime.local(2014, 3, 3).endOf('month').toISO(); //=> '2014-03-03T00:00:00.000-05:00'
+   * @example DateTime.local(2014, 3, 3).endOf('month').toISO(); //=> '2014-03-31T23:59:59.999-05:00'
    * @example DateTime.local(2014, 3, 3).endOf('year').toISO(); //=> '2014-12-31T23:59:59.999-05:00'
    * @example DateTime.local(2014, 3, 3, 5, 30).endOf('day').toISO(); //=> '2014-03-03T23:59:59.999-05:00'
    * @example DateTime.local(2014, 3, 3, 5, 30).endOf('hour').toISO(); //=> '2014-03-03T05:59:59.999-05:00'
@@ -1498,6 +1511,14 @@ export default class DateTime {
    */
   valueOf() {
     return this.isValid ? this.ts : NaN;
+  }
+
+  /**
+   * Returns the epoch milliseconds of this DateTime. Alias of {@link valueOf}
+   * @return {number}
+   */
+  toMillis() {
+    return this.valueOf();
   }
 
   /**

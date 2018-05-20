@@ -217,11 +217,19 @@ export default class Locale {
     this.eraCache = {};
 
     this.specifiedLocale = specifiedLocale;
-    this.fastNumbers = supportsFastNumbers(this);
+    this.fastNumbersCached = null;
+  }
+
+  get fastNumbers() {
+    if (this.fastNumbersCached !== null) {
+      this.fastNumbersCached = supportsFastNumbers(this);
+    }
+
+    return this.fastNumbersCached;
   }
 
   // todo: cache me
-  listingMode(defaultOk = true) {
+  listingMode(defaultOK = true) {
     const intl = hasIntl(),
       hasFTP = intl && hasFormatToParts(),
       isActuallyEn =
@@ -235,7 +243,7 @@ export default class Locale {
         (this.numberingSystem === null || this.numberingSystem === 'latn') &&
         (this.outputCalendar === null || this.outputCalendar === 'gregory');
 
-    if (!hasFTP && !(isActuallyEn && hasNoWeirdness) && !defaultOk) {
+    if (!hasFTP && !(isActuallyEn && hasNoWeirdness) && !defaultOK) {
       return 'error';
     } else if (!hasFTP || (isActuallyEn && hasNoWeirdness)) {
       return 'en';

@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.2.1
+
+ * 222x speed-up in DateTime creation for non-en locales
+ * `DateTime#toMillis` alias for `DateTime#valueOf`
+ * Fix types on zone exports
+
+## 1.2.0
+
+ * Export Zone classes
+ * Fix `endOf` and `startOf` for quarters
+ * Change `toFormat("Z")` to return a number for UTC
+ * Allow "GTM" as an argument to `setZone`
+
+## 1.1.0
+
+ * Support for zone names with more than two components
+ * Fixed long-term-accurate conversions for months
+ * Added `weeksInWeekYear`
+
+## 1.0.0
+ * The big one-oh. No changes from 0.5.8.
+
 ## 0.5.8
  *  Large perf improvements for `DateTime#toFormat()`, when using non-intl numbers
 
